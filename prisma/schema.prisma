@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+
+datasource db {
+  provider = "mysql"
+}
+
+model Fiche_Client {
+  id              Int        @id @default(autoincrement())
+  nom_Prenom      String     @map("Nom / Prenom")
+  code_Reference  String     @unique @map("Code Référence")
+  points_Fidelite String?    @map("Points Fidélités")
+  bonus_Acquis    String?    @map("Bonus Acquis")
+  tel             String?    @map("Tel")
+  achats          String?    @map("Achats")
+  email           String?    @map("Email")
+  createdAt       DateTime   @default(now()) @map("Created At")
+  commandes       Commande[]
+  panier          Panier[]
+
+  @@map("Fiche_Client")
+}
+
+model Panier {
+  id           Int      @id @default(autoincrement())
+  clientCode   String   @map("client_code")
+  categorie    String
+  produit      String
+  modele       String?
+  quantite     Int      @default(1)
+  prix         String
+  personnalise Boolean  @default(false)
+  imageUrl     String?  @map("image_url")
+  noteClient   String?  @map("note_client")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  client Fiche_Client @relation(fields: [clientCode], references: [code_Reference])
+
+  @@map("Panier")
+}
+
+model Commande {
+  id            Int              @id @default(autoincrement())
+  clientCode    String           @map("client_code")
+  clientNom     String           @map("client_nom")
+  clientEmail   String?          @map("client_email")
+  clientTel     String?          @map("client_tel")
+  total         String
+  statut        String           @default("en_attente")
+  lienPaiement  String?          @map("lien_paiement")
+  noteGlobale   String?          @map("note_globale")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+  lignes        CommandeLigne[]
+
+  client Fiche_Client @relation(fields: [clientCode], references: [code_Reference])
+
+  @@map("Commande")
+}
+
+model CommandeLigne {
+  id           Int      @id @default(autoincrement())
+  commandeId   Int      @map("commande_id")
+  categorie    String
+  produit      String
+  modele       String?
+  quantite     Int      @default(1)
+  prix         String
+  personnalise Boolean  @default(false)
+  noteClient   String?  @map("note_client")
+
+  commande Commande @relation(fields: [commandeId], references: [id])
+
+  @@map("CommandeLigne")
+}
+
+
