@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useRouter } from "next/navigation";
+import { Footer } from "@/components/footer";
+import { POINTS_BON, VALEUR_BON } from "@/constants";
 
 const C = {
   black: "#000000",
@@ -17,9 +19,6 @@ const C = {
   warning: "#F0C040",
   error: "#FF4444",
 };
-
-const POINTS_BON = 270;
-const VALEUR_BON = 10;
 
 const STATUT_LABELS: Record<string, { label: string; color: string }> = {
   en_attente:     { label: "En attente",      color: C.warning },
@@ -135,7 +134,7 @@ export default function ComptePage() {
     <div style={{ minHeight: "100vh", background: C.black, fontFamily: "'Helvetica Neue', Arial, sans-serif", color: C.blanc }}>
       <nav style={{ position: "sticky", top: 0, zIndex: 100, background: "rgba(0,0,0,0.92)", backdropFilter: "blur(12px)", borderBottom: `1px solid ${C.border}`, padding: "0 32px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <a href="/" style={{ textDecoration: "none", fontWeight: 900, fontSize: 18, color: C.blanc, letterSpacing: "0.05em" }}>
-          THE SHOTO<span style={{ color: C.rose }}>.</span>
+          Le SHOTO<span style={{ color: C.rose }}>.</span>
         </a>
         <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
           {isAdmin && (
@@ -167,7 +166,21 @@ export default function ComptePage() {
           </div>
         </motion.div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 32 }}>
+        <div className="max-md:hidden md:grid relative" style={{ gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 32 }}>
+          {[
+            { label: "Points", value: pointsNum.toString(), color: C.rose },
+            { label: `Bons ${VALEUR_BON}€`, value: bonsDispos.toString(), color: bonsDispos > 0 ? C.success : C.gris },
+            { label: "Commandes", value: commandes.length.toString(), color: C.gris },
+            { label: "Achats validés", value: client.achats ?? "0", color: C.gris },
+          ].map((s) => (
+            <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} style={{ background: C.grisDark, border: `1px solid ${s.label === `Bons ${VALEUR_BON}€` && bonsDispos > 0 ? C.success : C.border}`, padding: "20px" }}>
+              <p style={{ color: C.gris, fontSize: 10, letterSpacing: "0.3em", textTransform: "uppercase", margin: "0 0 6px", fontWeight: 600 }}>{s.label}</p>
+              <p style={{ color: s.color, fontWeight: 900, fontSize: 28, margin: 0 }}>{s.value}</p>
+            </motion.div>
+          ))}
+        </div>
+
+        <div className="max-md:grid md:hidden" style={{ gridTemplateColumns: "repeat(2, 1fr)", gap: 12, marginBottom: 32 }}>
           {[
             { label: "Points", value: pointsNum.toString(), color: C.rose },
             { label: `Bons ${VALEUR_BON}€`, value: bonsDispos.toString(), color: bonsDispos > 0 ? C.success : C.gris },
@@ -204,7 +217,7 @@ export default function ComptePage() {
           )}
         </motion.div>
 
-        <div style={{ display: "flex", gap: 0, marginBottom: 0, borderBottom: `1px solid ${C.border}` }}>
+        <div className="max-md:hidden md:flex relative" style={{ gap: 0, marginBottom: 0, borderBottom: `1px solid ${C.border}` }}>
           {[
             { key: "infos", label: "Informations" },
             { key: "commandes", label: `Commandes (${commandes.length})` },
@@ -216,11 +229,54 @@ export default function ComptePage() {
           ))}
         </div>
 
+        <div className="max-md:flex md:hidden" style={{ gap: 0, marginBottom: 0, borderBottom: `1px solid ${C.border}` }}>
+          {[
+            { key: "infos", label: "Informations" },
+            { key: "commandes", label: `Commandes (${commandes.length})` },
+          ].map((tab) => (
+            <button key={tab.key} onClick={() => setActiveTab(tab.key as "infos" | "commandes" | "fidelite")} style={{ background: "none", border: "none", borderBottom: `2px solid ${activeTab === tab.key ? C.rose : "transparent"}`, color: activeTab === tab.key ? C.rose : C.gris, padding: "12px 24px", fontSize: 12, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", cursor: "pointer", fontFamily: "inherit", marginBottom: -1, transition: "color 0.2s" }}>
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
         <AnimatePresence mode="wait">
 
           {activeTab === "infos" && (
             <motion.div key="infos" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }} style={{ paddingTop: 28 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+              <div className="max-md:hidden md:grid relative" style={{ gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+                <div style={{ background: C.grisDark, border: `1px solid ${C.border}`, padding: "28px" }}>
+                  <p style={{ color: C.rose, fontSize: 11, letterSpacing: "0.3em", textTransform: "uppercase", fontWeight: 700, margin: "0 0 20px" }}>Mes infos</p>
+                  {[
+                    { label: "Code client", value: client.code },
+                    ...(client.tel ? [{ label: "Téléphone", value: client.tel }] : []),
+                    ...(client.email ? [{ label: "Email", value: client.email }] : []),
+                    { label: "Membre depuis", value: formatDate(client.createdAt) },
+                  ].map((row) => (
+                    <div key={row.label} style={{ display: "flex", justifyContent: "space-between", padding: "12px 0", borderBottom: `1px solid ${C.border}` }}>
+                      <span style={{ color: C.gris, fontSize: 13 }}>{row.label}</span>
+                      <span style={{ color: C.blanc, fontSize: 13, fontWeight: 700 }}>{row.value}</span>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ background: C.grisDark, border: `1px solid ${C.border}`, padding: "28px" }}>
+                  <p style={{ color: C.rose, fontSize: 11, letterSpacing: "0.3em", textTransform: "uppercase", fontWeight: 700, margin: "0 0 20px" }}>Accès rapide</p>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {[
+                      // { label: "🛒 Mon panier", href: "/panier" },
+                      // { label: "Boutique Coques & Écrans", href: "/boutique/coques" },
+                      // { label: "Boutique Goodies & Figurines", href: "/boutique/goodies" },
+                      { label: "Retour accueil", href: "/" },
+                    ].map((link) => (
+                      <motion.a key={link.href} href={link.href} whileHover={{ x: 6 }} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "13px 16px", border: `1px solid ${C.border}`, textDecoration: "none", color: C.blanc, fontSize: 13, fontWeight: 600 }}>
+                        {link.label} <span style={{ color: C.rose }}>→</span>
+                      </motion.a>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="max-md:grid md:hidden" style={{ gridTemplateColumns: "1fr", gap: 20 }}>
                 <div style={{ background: C.grisDark, border: `1px solid ${C.border}`, padding: "28px" }}>
                   <p style={{ color: C.rose, fontSize: 11, letterSpacing: "0.3em", textTransform: "uppercase", fontWeight: 700, margin: "0 0 20px" }}>Mes infos</p>
                   {[
@@ -372,10 +428,7 @@ export default function ComptePage() {
         </AnimatePresence>
       </div>
 
-      <footer style={{ borderTop: `1px solid ${C.border}`, padding: "24px 32px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginTop: 40 }}>
-        <span style={{ fontWeight: 900, fontSize: 15 }}>THE SHOTO<span style={{ color: C.rose }}>.</span></span>
-        <span style={{ color: "#333", fontSize: 11 }}>23 rue Georges Clémenceau · 11000 Carcassonne · leshotomangashop@gmail.com</span>
-      </footer>
+      <Footer />
     </div>
   );
 }
