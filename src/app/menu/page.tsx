@@ -15,6 +15,9 @@ import { Footer } from "@/components/footer";
 
 import { COLORS, MENU_ITEMS } from "@/constants";
 import { HalftonePattern } from "@/components/ui/elements/HalftonePattern";
+import WavingCharacter from "@/components/characters/wavingCharacter";
+import WavingCharacter2 from "@/components/characters/wavingcharacter2";
+import WavingCharacter3 from "@/components/characters/wavingcharacter3";
 
 
 function useViewportWidth() {
@@ -38,6 +41,7 @@ function MenuSlide({ section, si, scrollYProgress }: { section: typeof MENU_ITEM
   return (
     <div style={{ width: "100vw", minWidth: "100vw", height: "100vh", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: "160px 80px 80px", position: "relative" }}>
       <div style={{ position: "absolute", bottom: 60, left: 80, fontWeight: 900, fontSize: "20vw", lineHeight: 1, color: "transparent", WebkitTextStroke: `1px ${catAccent}`, opacity: 0.06, userSelect: "none", pointerEvents: "none" }}>{String(si + 1).padStart(2, "0")}</div>
+      <WavingCharacter2 />
       <motion.div style={{ width: "100%", maxWidth: 900, y: cardY }}>
         <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 48 }}>
           <div style={{ width: 48, height: 3, background: catAccent }} />

@@ -35,40 +35,42 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Client introuvable." }, { status: 404 });
     }
 
-    const ancienTotal = parseInt(client.points_Fidelite ?? "0", 10) || 0;
+    const nombrepoits = parseInt(client.points_Fidelite ?? "0", 10) || 0;
+    let nombrebons = Math.floor(nombrepoits / POINTS_BON);
+    
 
     const nouveauTotal =
       operation === "ajouter"
-        ? ancienTotal + delta
-        : Math.max(0, ancienTotal - delta);
+        ? nombrebons + delta
+        : Math.max(0, nombrebons - delta);
 
-    const deltaReel = operation === "ajouter" ? delta : ancienTotal - nouveauTotal;
+    const deltaReel = operation === "ajouter" ? delta : nombrebons - nouveauTotal;
 
     await prisma.fiche_Client.update({
       where: { id: Number(clientId) },
       data: { points_Fidelite: nouveauTotal.toString() },
     });
 
-    const bonsAvant = Math.floor(ancienTotal / POINTS_BON);
-    const bonsApres = Math.floor(nouveauTotal / POINTS_BON);
+    const bonsAvant = Math.floor(nombrebons);
+    const bonsApres = Math.floor(nouveauTotal);
     const nouveauBon = bonsApres > bonsAvant;
-    const pointsRestants = nouveauTotal % POINTS_BON;
-    const prochainBon = POINTS_BON - pointsRestants;
+    const bonsRestants = nouveauTotal % POINTS_BON;
+    const prochainBon = nouveauTotal - bonsRestants;
 
     console.log(
-      `[POINTS] ${operation} ${deltaReel}pts | ${client.code_Reference} | ${ancienTotal} → ${nouveauTotal} | raison: ${raison ?? "—"}`
+      `[POINTS] ${operation} ${deltaReel}pts | ${client.code_Reference} | ${nombrebons} → ${nouveauTotal} | raison: ${raison ?? "—"}`
     );
 
     return NextResponse.json({
       success: true,
       code: client.code_Reference,
       nomPrenom: client.nom_Prenom,
-      ancienTotal,
+      nombrebons,
       nouveauTotal,
       delta: operation === "ajouter" ? `+${deltaReel}` : `-${deltaReel}`,
       bonDachatDisponibles: bonsApres,
       nouveauBon,
-      pointsRestants,
+      bonsRestants,
       prochainBon,
       valeurBon: VALEUR_BON,
     });

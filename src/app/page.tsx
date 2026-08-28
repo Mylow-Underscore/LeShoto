@@ -87,12 +87,45 @@ function UniversPanel({ panel, i, totalSlides, scrollYProgress }: { panel: typeo
   );
 }
 
+function UniversPanelMobile({ panel, i, totalSlides, scrollYProgress }: { panel: typeof UNIVERS_PANELS_DATA[0]; i: number; totalSlides: number; scrollYProgress: MotionValue<number> }) {
+  const slideIdx = i + 1;
+  const p = useTransform(scrollYProgress, [slideIdx / totalSlides, (slideIdx + 1) / totalSlides], [0, 1]);
+  const panelScale = useTransform(p, [0, 1], [1, 0.94]);
+  const panelOpacity = useTransform(p, [0.75, 1], [1, 0]);
+  const barScaleX = useTransform(p, [0, 0.8], [0, 1]);
+
+  return (
+    <motion.div id={i === 0 ? "univers" : undefined} style={{ width: "100vw", height: "100vh", flexShrink: 0, background: panel.bg, display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "0 80px 80px", position: "relative", overflow: "hidden", opacity: i < UNIVERS_PANELS_DATA.length - 2 ? panelOpacity : 1.9 }}>
+      <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.05, pointerEvents: "none" }} xmlns="http://www.w3.org/2000/svg">
+        <defs><pattern id={`udots-${i}`} x="0" y="0" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="12" cy="12" r="2" fill={panel.accent} /></pattern></defs>
+        <rect width="100%" height="100%" fill={`url(#udots-${i})`} />
+      </svg>
+      <div style={{ position: "absolute", top: 60, left: 80, fontWeight: 900, fontSize: "22vw", lineHeight: 1, color: "transparent", WebkitTextStroke: `1px ${panel.accent}`, opacity: 0.1, userSelect: "none" }}>{panel.num}</div>
+      <div style={{ position: "absolute", top: 60, left: 80, right: 80, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span style={{ color: COLORS.muted, fontSize: 11, letterSpacing: "0.4em", textTransform: "uppercase" }}>— L'univers</span>
+        <span style={{ color: COLORS.muted, fontSize: 11, letterSpacing: "0.3em" }}>{i + 1} / {UNIVERS_PANELS_DATA.length}</span>
+      </div>
+      <div style={{ width: 48, height: 3, background: panel.accent, marginBottom: 28 }} />
+      <h2 style={{ fontWeight: 900, fontSize: "clamp(36px, 7vw, 100px)", textTransform: "uppercase", letterSpacing: "-0.04em", lineHeight: 0.9, margin: "0 0 12px", color: COLORS.white }}>{panel.title}</h2>
+      <h3 style={{ fontWeight: 300, fontSize: "clamp(24px, 3vw, 48px)", textTransform: "uppercase", letterSpacing: "0.2em", margin: "0 0 32px", color: panel.accent }}>{panel.sub}</h3>
+      <p style={{ color: COLORS.muted, lineHeight: 1.8, fontSize: 18, margin: 0, maxWidth: 480 }}>{panel.text}</p>
+      {i < UNIVERS_PANELS_DATA.length - 1 && (
+        <div style={{ position: "absolute", bottom: 48, right: 80, display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{ color: COLORS.muted, fontSize: 11, letterSpacing: "0.3em", textTransform: "uppercase" }}>suivant</span>
+          <motion.div animate={{ x: [0, 8, 0] }} transition={{ repeat: Infinity, duration: 1.4, ease: "easeInOut" }} style={{ color: panel.accent, fontSize: 18 }}>→</motion.div>
+        </div>
+      )}
+      <motion.div style={{ position: "absolute", bottom: 0, left: 0, width: "100%", height: 3, background: panel.accent, scaleX: barScaleX, transformOrigin: "left" }} />
+    </motion.div>
+  );
+}
+
 function ConceptSlide({ scrollYProgress, totalSlides }: { scrollYProgress: MotionValue<number>; totalSlides: number }) {
   const p = useTransform(scrollYProgress, [0, 1 / totalSlides], [0, 1]);
   const conceptScale = useTransform(p, [0, 1], [1, 0.92]);
   const conceptOpacity = useTransform(p, [0.7, 1], [1, 0]);
   return (
-    <motion.div style={{ width: "100vw", height: "100vh", flexShrink: 0, background: COLORS.black, display: "flex", alignItems: "center", justifyContent: "center", position: "relative", overflow: "hidden", scale: conceptScale, opacity: conceptOpacity }}>
+    <motion.div className="max-md:hidden md:flex relative" style={{ width: "100vw", height: "100vh", flexShrink: 0, background: COLORS.black, alignItems: "center", justifyContent: "center", position: "relative", overflow: "hidden", scale: conceptScale, opacity: conceptOpacity }}>
       <HalftonePattern />
       <WavingCharacter2 />
       <div style={{ maxWidth: 1200, width: "100%", padding: "0 64px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 80, alignItems: "center" }}>
@@ -120,6 +153,44 @@ function ConceptSlide({ scrollYProgress, totalSlides }: { scrollYProgress: Motio
       <div style={{ position: "absolute", bottom: 40, right: 64, display: "flex", alignItems: "center", gap: 12 }}>
         <span style={{ color: COLORS.muted, fontSize: 11, letterSpacing: "0.3em", textTransform: "uppercase" }}>scroll pour continuer</span>
         <motion.div animate={{ x: [0, 8, 0] }} transition={{ repeat: Infinity, duration: 1.4, ease: "easeInOut" }} style={{ color: COLORS.accent, fontSize: 18 }}>→</motion.div>
+      </div>
+      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 1, background: COLORS.border }} />
+    </motion.div>
+  );
+}
+
+function ConceptSlideMobile({ scrollYProgress, totalSlides }: { scrollYProgress: MotionValue<number>; totalSlides: number }) {
+  const p = useTransform(scrollYProgress, [0, 1 / totalSlides], [0, 1]);
+  const conceptScale = useTransform(p, [0, 1], [1, 0.92]);
+  const conceptOpacity = useTransform(p, [0.7, 1], [1, 0]);
+  return (
+    <motion.div className="max-md:flex md:hidden" style={{ width: "100vw", height: "100vh", flexShrink: 0, background: COLORS.black, alignItems: "center", justifyContent: "center", position: "relative", overflow: "hidden", scale: conceptScale, opacity: conceptOpacity }}>
+      <HalftonePattern />
+      <div style={{ height: "100%", padding: "0 64px 64px 64px", display: "grid", gridTemplateColumns: "1fr", alignItems: "center" }}>
+        <div>
+          <p style={{ color: COLORS.accent, fontSize: 11, letterSpacing: "0.4em", textTransform: "uppercase", fontWeight: 700, margin: "0 0 24px" }}>— Notre concept</p>
+          <h2 style={{ fontSize: "clamp(40px, 5vw, 80px)", fontWeight: 900, lineHeight: 0.95, textTransform: "uppercase", letterSpacing: "-0.03em", margin: 0 }}>
+            Une bulle<br />
+            <span style={{ WebkitTextStroke: `2px ${COLORS.white}`, color: "transparent" }}>japonaise</span>
+            <br />à Carca.
+          </h2>
+        </div>
+        <div style={{ borderTop: `3px solid ${COLORS.accent}`, paddingTop: 40 }}>
+          <p style={{ color: COLORS.muted, lineHeight: 1.8, fontSize: 16, margin: "0 0 24px" }}>Le Shoto, c'est l'endroit où tu poses ton sac, tu attrapes un manga, et tu oublies le temps. Ambiance sombre, playlists lo-fi, étagères remplies des meilleures séries.</p>
+          <p style={{ color: COLORS.muted, lineHeight: 1.8, fontSize: 16, margin: "0 0 40px" }}>Café, thé japonais ou granité frais : sip, lis, recommence. On t'attend à Carcassonne.</p>
+          <div style={{ display: "flex", gap: 40 }}>
+            {[["2000+", "Mangas"], ["3", "Univers"], ["∞", "Ambiance"]].map(([n, l]) => (
+              <div key={l}>
+                <div style={{ fontSize: 32, fontWeight: 900, color: COLORS.gold }}>{n}</div>
+                <div style={{ fontSize: 11, color: COLORS.muted, letterSpacing: "0.2em", textTransform: "uppercase" }}>{l}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div style={{ position: "absolute", bottom: 40, right: 64, display: "flex", alignItems: "center", gap: 12 }}>
+        <span style={{ color: COLORS.muted, fontSize: 11, letterSpacing: "0.3em", textTransform: "uppercase" }}>scroll pour continuer</span>
+        <motion.div animate={{ y: [0, 8, 0] }} transition={{ repeat: Infinity, duration: 1.4, ease: "easeInOut" }} style={{ color: COLORS.accent, fontSize: 18 }}>↓</motion.div>
       </div>
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 1, background: COLORS.border }} />
     </motion.div>
@@ -190,11 +261,11 @@ function ConceptUniversMobile() {
       <div style={{ position: "sticky", top: 0, height: `${totalSlides * 100}vh`, overflow: "hidden", isolation: "isolate" }}>
         <motion.div style={{ display: "flex", flexDirection: "column", width: "100%", height: "auto", willChange: "transform" }}>
           <div style={{ width: "100%", minWidth: "100%", height: "100vh", overflow: "hidden" }}>
-            <ConceptSlide scrollYProgress={scrollYProgress} totalSlides={totalSlides} />
+            <ConceptSlideMobile scrollYProgress={scrollYProgress} totalSlides={totalSlides} />
           </div>
           {UNIVERS_PANELS_DATA.map((panel, i) => (
             <div key={panel.num} style={{ width: "100%", minWidth: "100%", height: "100vh", overflow: "hidden" }}>
-              <UniversPanel panel={panel} i={i} totalSlides={totalSlides} scrollYProgress={scrollYProgress} />
+              <UniversPanelMobile panel={panel} i={i} totalSlides={totalSlides} scrollYProgress={scrollYProgress} />
             </div>
           ))}
         </motion.div>
@@ -251,9 +322,6 @@ function Infos() {
                       </motion.a>
                     ))}
                   </div>
-                  <a href="/boutique/coques" style={{ display: "block", background: COLORS.accent, color: COLORS.white, textAlign: "center", padding: "16px", textDecoration: "none", fontWeight: 800, fontSize: 13, letterSpacing: "0.15em", textTransform: "uppercase" }}>
-                    Accéder à la boutique →
-                  </a>
                 </div>
               </FadeUp>
             </div>
@@ -305,9 +373,6 @@ function InfosMobile() {
                       </motion.a>
                     ))}
                   </div>
-                  <a href="/boutique/coques" style={{ display: "block", background: COLORS.accent, color: COLORS.white, textAlign: "center", padding: "16px", textDecoration: "none", fontWeight: 800, fontSize: 13, letterSpacing: "0.15em", textTransform: "uppercase" }}>
-                    Accéder à la boutique →
-                  </a>
                 </div>
               </FadeUp>
             </div>
@@ -399,7 +464,8 @@ export default function Home() {
               {/* <a href="/boutique/coques" style={{ border: `2px solid ${COLORS.border}`, color: COLORS.white, padding: "14px 36px", textDecoration: "none", fontWeight: 700, fontSize: 13, letterSpacing: "0.15em", textTransform: "uppercase", borderRadius: 2, display: "inline-block" }}>Boutique</a> */}
             </motion.div>
           </div>
-          <motion.div animate={{ y: [0, 10, 0] }} transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }} style={{ position: "absolute", bottom: 32, left: "48%", transform: "translateX(-50%)", color: COLORS.muted, fontSize: 11, letterSpacing: "0.3em", textTransform: "uppercase" }}>scroll</motion.div>
+          <motion.div className="max-md:hidden md:flex relative" animate={{ y: [0, 10, 0] }} transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }} style={{ position: "absolute", bottom: 32, left: "48%", transform: "translateX(-50%)", color: COLORS.muted, fontSize: 11, letterSpacing: "0.3em", textTransform: "uppercase" }}>Scroll</motion.div>
+          <motion.div className="max-md:flex md:hidden" animate={{ y: [0, 10, 0] }} transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }} style={{ position: "absolute", bottom: 32, left: "48%", transform: "translateX(-50%)", color: COLORS.muted, fontSize: 22, letterSpacing: "0.3em", textTransform: "uppercase" }}>↓</motion.div>
         </section>
 
         <ConceptUnivers />

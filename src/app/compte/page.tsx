@@ -316,7 +316,6 @@ export default function ComptePage() {
                 <div style={{ textAlign: "center", padding: "80px 0" }}>
                   <div style={{ fontSize: 48, marginBottom: 16 }}>📦</div>
                   <p style={{ color: C.gris, fontSize: 15, margin: "0 0 24px" }}>Aucune commande pour l'instant.</p>
-                  <a href="/boutique/coques" style={{ display: "inline-block", background: C.bordeaux, color: C.blanc, textDecoration: "none", padding: "12px 28px", fontSize: 12, fontWeight: 800, letterSpacing: "0.15em", textTransform: "uppercase" }}>Voir la boutique →</a>
                 </div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>

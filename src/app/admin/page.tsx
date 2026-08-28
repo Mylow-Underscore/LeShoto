@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from "motion/react";
 import { useRouter } from "next/navigation";
 import { COLORS, POINTS_BON, VALEUR_BON } from "@/constants";
 
+import { Commande } from "@/components/admin/commande";
+
 const C = {
   black: "#000000",
   rose: "#FF66C4",
@@ -32,7 +34,7 @@ interface Client {
   id: number;
   code: string;
   nomPrenom: string;
-  points: string | null;
+  points: number | null;
   bonus: string | null;
   tel: string | null;
   email: string | null;
@@ -61,7 +63,7 @@ interface Commande {
   lignes: CommandeLigne[];
 }
 
-type Tab = "dashboard" | "clients" | "commandes" | "points";
+type Tab = "dashboard" | "clients" | "commandes en ligne" | "commandes" | "points";
 
 function StatCard({ label, value, color, sub }: { label: string; value: string | number; color: string; sub?: string }) {
   return (
@@ -89,6 +91,10 @@ export default function AdminPage() {
   const [pointsResult, setPointsResult] = useState<{ delta: string; nouveauTotal: number; code: string; bonDachatDisponibles: number } | null>(null);
   const [pointsError, setPointsError] = useState("");
   const [pointsLoading, setPointsLoading] = useState(false);
+  const [bonsForm, setBonsForm] = useState({ clientId: "", operation: "ajouter", montant: "", raison: "" });
+  const [bonsResult, setBonsResult] = useState<{ delta: string; nouveauTotal: number; code: string; bonDachatDisponibles: number } | null>(null);
+  const [bonsError, setBonsError] = useState("");
+  const [bonsLoading, setBonsLoading] = useState(false);
   const [statutFilter, setStatutFilter] = useState("tous");
   const router = useRouter();
 
@@ -147,7 +153,7 @@ export default function AdminPage() {
     setTimeout(() => setStatutFeedback(null), 4000);
   };
 
-  const handlePoints = async () => {
+  const handlebnosetpoints = async () => {
     if (!pointsForm.clientId || !pointsForm.montant) { setPointsError("Sélectionne un client et un montant."); return; }
     setPointsLoading(true); setPointsError(""); setPointsResult(null);
     try {
@@ -163,20 +169,50 @@ export default function AdminPage() {
       setPointsForm((p) => ({ ...p, montant: "", raison: "" }));
     } catch { setPointsError("Erreur serveur."); }
     finally { setPointsLoading(false); }
+
+    if (!bonsForm.clientId || !bonsForm.montant) { setBonsError("Sélectionne un client et un montant."); return; }
+    setBonsLoading(true); setBonsError(""); setBonsResult(null);
+    try {
+      const r = await fetch("/api/clients/bons", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientId: parseInt(bonsForm.clientId), operation: bonsForm.operation, montant: bonsForm.montant, raison: bonsForm.raison }),
+      });
+      const d = await r.json();
+      if (!r.ok) { setBonsError(d.error ?? "Erreur"); setBonsLoading(false); return; }
+      setBonsResult(d);
+      setClients((prev) => prev.map((c) => c.id === parseInt(bonsForm.clientId) ? { ...c, points: d.nouveauTotal.toString() } : c));
+      setBonsForm((p) => ({ ...p, montant: "", raison: "" }));
+    } catch { setBonsError("Erreur serveur."); }
+    finally { setBonsLoading(false); }
   };
 
   const formatDate = (d: string) => new Date(d).toLocaleDateString("fr-FR");
   const formatDateFull = (d: string) => new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
-  const getPts = (c: Client) => parseInt(c.points ?? "0") || 0;
-  const totalPts = clients.reduce((a, c) => a + getPts(c), 0);
+  const getPts = (c: Client) => c.points || 0;
+  const totalPts = clients.reduce((a) => a, 0);
   const totalCA = commandes.filter((c) => c.statut === "recuperee").reduce((a, c) => a + parseFloat(c.total.replace(",", ".").replace("€", "").trim()), 0);
+  const [clientSearch, setClientSearch] = useState('');
+  const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
+  const [filteredClients, setFilteredClients] = useState<Client[]>([]);
 
-  const filteredClients = clients.filter((c) =>
-    c.nomPrenom.toLowerCase().includes(search.toLowerCase()) ||
-    c.code.toLowerCase().includes(search.toLowerCase()) ||
-    (c.email ?? "").toLowerCase().includes(search.toLowerCase())
-  );
+  useEffect(() => {
+    if (clientSearch) {
+      const results = clients.filter((c) =>
+        c.nomPrenom.toLowerCase().includes(clientSearch.toLowerCase()) ||
+        c.id === parseInt(clientSearch) ||
+        c.code.toLowerCase().includes(clientSearch.toLowerCase()) ||
+        (c.email ?? "").toLowerCase().includes(clientSearch.toLowerCase())
+      );
+      
+      setFilteredClients(results);
+    } else {
+      // Réinitialiser la liste de résultats si la recherche est vide
+      setFilteredClients([]);
+    }
+  }, [clientSearch]);
 
+  
   const filteredCommandes = commandes
     .filter((c) => statutFilter === "tous" || c.statut === statutFilter)
     .filter((c) =>
@@ -188,6 +224,7 @@ export default function AdminPage() {
   const TABS: { key: Tab; label: string }[] = [
     { key: "dashboard", label: "Dashboard" },
     { key: "clients", label: `Clients (${clients.length})` },
+    { key: "commandes en ligne", label: `commandes en ligne (${commandes.length})` },
     { key: "commandes", label: `Commandes (${commandes.length})` },
     { key: "points", label: "Points fidélité" },
   ];
@@ -240,13 +277,11 @@ export default function AdminPage() {
               </div>
 
               <div className="max-md:hidden md:grid relative" style={{ gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 40 }}>
-                <StatCard label="Points distribués" value={totalPts} color={C.rose} sub="Total cumulé" />
                 <StatCard label="Bons actifs" value={clients.reduce((a, c) => a + Math.floor(getPts(c) / POINTS_BON), 0)} color={C.warning} sub={`${POINTS_BON} pts = ${VALEUR_BON}€`} />
                 <StatCard label="Prêtes à retirer" value={commandes.filter((c) => c.statut === "prete").length} color={C.success} />
                 <StatCard label="Annulées" value={commandes.filter((c) => c.statut === "annulee").length} color={C.error} />
               </div>
               <div className="max-md:grid md:hidden" style={{ gridTemplateColumns: "repeat(2, 1fr)", gap: 14, marginBottom: 40 }}>
-                <StatCard label="Points distribués" value={totalPts} color={C.rose} sub="Total cumulé" />
                 <StatCard label="Bons actifs" value={clients.reduce((a, c) => a + Math.floor(getPts(c) / POINTS_BON), 0)} color={C.warning} sub={`${POINTS_BON} pts = ${VALEUR_BON}€`} />
                 <StatCard label="Prêtes à retirer" value={commandes.filter((c) => c.statut === "prete").length} color={C.success} />
                 <StatCard label="Annulées" value={commandes.filter((c) => c.statut === "annulee").length} color={C.error} />
@@ -490,7 +525,32 @@ export default function AdminPage() {
                 <p style={{ color: C.rose, fontSize: 11, letterSpacing: "0.3em", textTransform: "uppercase", fontWeight: 700, margin: 0 }}>
                   Liste clients ({filteredClients.length})
                 </p>
-                <input type="text" placeholder="Nom, code, email…" value={search} onChange={(e) => setSearch(e.target.value)} style={{ background: C.grisDark, border: `1px solid ${C.border}`, color: C.blanc, padding: "9px 14px", fontSize: 13, fontFamily: "inherit", outline: "none", width: 260 }} onFocus={(e) => { e.currentTarget.style.borderColor = C.rose; }} onBlur={(e) => { e.currentTarget.style.borderColor = C.border; }} />
+                <input 
+                            type="text"
+                            placeholder="Rechercher par code ou nom..."
+                            value={clientSearch}
+                            onChange={(e) => setClientSearch(e.target.value)}
+                            onFocus={(e) => {
+                              if (selectedClientId !== null && e.currentTarget.style.borderColor === C.border) {
+                                e.currentTarget.style.borderColor = C.rose;
+                              }
+                            }}
+                            onBlur={(e) => {
+                              if (selectedClientId !== null) return;
+                              e.currentTarget.style.borderColor = C.border;
+                            }}
+                            style={{
+                              width: '100%',
+                              background: C.grisMid,
+                              border: `2px solid ${C.border}`, 
+                              borderRadius: '8px', 
+                              color: C.blanc,
+                              padding: '14px',
+                              fontSize: '1rem',
+                              fontFamily: '"Inter", sans-serif',
+                              transition: 'border-color 0.3s, background-color 0.3s'
+                            }}
+                          />
               </div>
 
               <div style={{ border: `1px solid ${C.border}` }}>
@@ -510,6 +570,7 @@ export default function AdminPage() {
                         <p style={{ fontWeight: 700, fontSize: 13, margin: "0 0 2px" }}>{c.nomPrenom}</p>
                         {c.email && <p style={{ color: "#444", fontSize: 11, margin: 0 }}>{c.email}</p>}
                       </div>
+
                       <span style={{ color: COLORS.white, fontWeight: 700, fontSize: 12 }}>{c.tel || "Non renseigné"}</span>
                       <span style={{ color: COLORS.gold, fontWeight: 700, fontSize: 12 }}>{c.code}</span>
                       <span style={{ color: COLORS.accent, fontSize: 11 }}>{formatDate(c.createdAt)}</span>
@@ -520,8 +581,8 @@ export default function AdminPage() {
             </motion.div>
           )}
 
-          {activeTab === "commandes" && (
-            <motion.div key="commandes" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }} style={{ paddingTop: 32 }}>
+          {activeTab === "commandes en ligne" && (
+            <motion.div key="commandes en ligne" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }} style={{ paddingTop: 32 }}>
 
               <AnimatePresence>
                 {statutFeedback && (
@@ -610,6 +671,10 @@ export default function AdminPage() {
             </motion.div>
           )}
 
+          {activeTab === "commandes" && (
+            <Commande />
+          )}
+
           {activeTab === "points" && (
             <motion.div key="points" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }} style={{ paddingTop: 32 }}>
               <div className="max-md:hidden md:grid relative" style={{ gridTemplateColumns: "1fr 1fr", gap: 28 }}>
@@ -696,7 +761,7 @@ export default function AdminPage() {
                     );
                   })()}
 
-                  <motion.button onClick={handlePoints} disabled={pointsLoading || !pointsForm.clientId || !pointsForm.montant} whileTap={!pointsLoading ? { scale: 0.97 } : {}} style={{ width: "100%", background: pointsLoading || !pointsForm.clientId || !pointsForm.montant ? C.grisMid : pointsForm.operation === "ajouter" ? C.bordeaux : "#3a0000", color: pointsLoading || !pointsForm.clientId || !pointsForm.montant ? "#555" : C.blanc, border: "none", padding: "14px", fontSize: 12, fontWeight: 800, letterSpacing: "0.2em", textTransform: "uppercase", cursor: pointsLoading || !pointsForm.clientId || !pointsForm.montant ? "not-allowed" : "pointer", fontFamily: "inherit", transition: "background 0.2s" }}>
+                  <motion.button onClick={handlebnosetpoints} disabled={pointsLoading || !pointsForm.clientId || !pointsForm.montant} whileTap={!pointsLoading ? { scale: 0.97 } : {}} style={{ width: "100%", background: pointsLoading || !pointsForm.clientId || !pointsForm.montant ? C.grisMid : pointsForm.operation === "ajouter" ? C.bordeaux : "#3a0000", color: pointsLoading || !pointsForm.clientId || !pointsForm.montant ? "#555" : C.blanc, border: "none", padding: "14px", fontSize: 12, fontWeight: 800, letterSpacing: "0.2em", textTransform: "uppercase", cursor: pointsLoading || !pointsForm.clientId || !pointsForm.montant ? "not-allowed" : "pointer", fontFamily: "inherit", transition: "background 0.2s" }}>
                     {pointsLoading ? "Mise à jour…" : pointsForm.operation === "ajouter" ? `+ Ajouter ${pointsForm.montant || "…"} pts →` : `− Retirer ${pointsForm.montant || "…"} pts →`}
                   </motion.button>
                 </div>
@@ -834,7 +899,7 @@ export default function AdminPage() {
                     );
                   })()}
 
-                  <motion.button onClick={handlePoints} disabled={pointsLoading || !pointsForm.clientId || !pointsForm.montant} whileTap={!pointsLoading ? { scale: 0.97 } : {}} style={{ width: "100%", background: pointsLoading || !pointsForm.clientId || !pointsForm.montant ? C.grisMid : pointsForm.operation === "ajouter" ? C.bordeaux : "#3a0000", color: pointsLoading || !pointsForm.clientId || !pointsForm.montant ? "#555" : C.blanc, border: "none", padding: "14px", fontSize: 12, fontWeight: 800, letterSpacing: "0.2em", textTransform: "uppercase", cursor: pointsLoading || !pointsForm.clientId || !pointsForm.montant ? "not-allowed" : "pointer", fontFamily: "inherit", transition: "background 0.2s" }}>
+                  <motion.button onClick={handlebnosetpoints} disabled={pointsLoading || !pointsForm.clientId || !pointsForm.montant} whileTap={!pointsLoading ? { scale: 0.97 } : {}} style={{ width: "100%", background: pointsLoading || !pointsForm.clientId || !pointsForm.montant ? C.grisMid : pointsForm.operation === "ajouter" ? C.bordeaux : "#3a0000", color: pointsLoading || !pointsForm.clientId || !pointsForm.montant ? "#555" : C.blanc, border: "none", padding: "14px", fontSize: 12, fontWeight: 800, letterSpacing: "0.2em", textTransform: "uppercase", cursor: pointsLoading || !pointsForm.clientId || !pointsForm.montant ? "not-allowed" : "pointer", fontFamily: "inherit", transition: "background 0.2s" }}>
                     {pointsLoading ? "Mise à jour…" : pointsForm.operation === "ajouter" ? `+ Ajouter ${pointsForm.montant || "…"} pts →` : `− Retirer ${pointsForm.montant || "…"} pts →`}
                   </motion.button>
                 </div>

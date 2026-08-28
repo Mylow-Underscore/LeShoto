@@ -12,7 +12,7 @@ export const COLORS = {
 export const NAV_LINKS = [
   { label: "Accueil", href: "/" },
   { label: "Concept", href: "#concept" },
-  { label: "Boissons", href: "#menu" },
+  { label: "Menu", href: "/menu" },
   { label: "Univers", href: "#univers" },
   { label: "Infos", href: "#infos" },
 ];
