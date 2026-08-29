@@ -1,15 +1,17 @@
 import { prisma } from "@/lib/prisma";
 
 export async function generateClientCode(nom: string, prenom: string): Promise<string> {
-
-  const prefix = `${nom[0]}${prenom[0]}`;
+  
+  const letterNom = nom.trim()[0].toUpperCase();
+  const letterPrenom = prenom.trim()[0].toUpperCase();
+  const prefix = `${letterNom}${letterPrenom}`;
 
   const lastCodeResult = await prisma.fiche_Client.findFirst({
     where: { code_Reference: { startsWith: prefix } },
     orderBy: { code_Reference: "desc" }
   });
 
-  let nextNum;
+  let nextNum = "100".padStart(3, '0'); // Default to "100" if no previous code exists
 
   if (lastCodeResult?.code_Reference) {
     const numMatch = lastCodeResult.code_Reference.match(/\d+$/)?.[0];
